@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AURA INTEL // Indian Equity News & Market Intelligence</title>
+  <meta name="description" content="Instant multi-source stock news lookup for Indian equities. Features canonical ticker resolution, automated deduplication, financial sentiment scoring, and AI executive briefings.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css?v=2.2.0">
+</head>
+<body class="theme-dark">
+  <!-- Terminal Top Bar -->
+  <header class="app-header" id="appHeader">
+    <div class="header-container">
+      <div class="brand-group">
+        <div class="brand-logo">
+          <span class="logo-pulse"></span>
+          <span class="logo-text">AURA<span class="text-accent">INTEL</span></span>
+        </div>
+        <span class="brand-badge">EQUITY RADAR v2.0</span>
+      </div>
+
+      <div class="market-status-bar">
+        <div class="status-indicator">
+          <span class="dot-online"></span>
+          <span class="status-label">NSE/BSE SCRAPER ACTIVE</span>
+        </div>
+        <div class="latency-chip" id="latencyIndicator">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          <span id="latencyValue">~1.2s Fast Engine</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button class="btn btn-outline" id="openWatchlistBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <span>Watchlist & Digest</span>
+          <span class="badge-count" id="watchlistCount">5</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="main-content" id="mainContent">
+    <!-- Hero Search Area -->
+    <section class="hero-section">
+      <div class="hero-header">
+        <h1 class="hero-title">Indian Equity News <span class="gradient-text">Automation</span></h1>
+        <p class="hero-subtitle">Type any stock name or ticker to scrape verified news from multiple financial outlets, deduplicate redundant stories, and generate an AI market briefing.</p>
+      </div>
+
+      <!-- Single Primary Search Box -->
+      <div class="search-box-container">
+        <form class="search-form" id="searchForm" onsubmit="return false;">
+          <div class="search-input-wrapper">
+            <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input 
+              type="text" 
+              id="stockInput" 
+              class="stock-input" 
+              placeholder="Search stock by name or ticker (e.g. TCS, Tata Consultancy, TCS.NS)..." 
+              autocomplete="off" 
+              spellcheck="false"
+              value="TCS"
+              required
+            >
+            <button type="button" class="btn-clear-input" id="clearInputBtn" title="Clear input">×</button>
+            <button type="submit" class="btn btn-primary search-submit-btn" id="searchBtn">
+              <span>Analyze Stock</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </button>
+          </div>
+          <!-- Auto-suggestion Dropdown -->
+          <div class="suggestions-dropdown" id="suggestionsDropdown"></div>
+        </form>
+
+        <!-- Quick Trending Ticker Chips -->
+        <div class="trending-chips-row">
+          <span class="chips-label">Quick Lookups:</span>
+          <div class="chips-list" id="trendingChipsList">
+            <button class="chip-pill active" data-symbol="TCS">TCS</button>
+            <button class="chip-pill" data-symbol="Tata Consultancy">Tata Consultancy</button>
+            <button class="chip-pill" data-symbol="TCS.NS">TCS.NS</button>
+            <button class="chip-pill" data-symbol="RELIANCE">RELIANCE</button>
+            <button class="chip-pill" data-symbol="INFY">INFY</button>
+            <button class="chip-pill" data-symbol="HDFCBANK">HDFCBANK</button>
+            <button class="chip-pill" data-symbol="TATAMOTORS">TATAMOTORS</button>
+            <button class="chip-pill" data-symbol="ZOMATO">ZOMATO</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Loading State Skeleton -->
+    <div class="loading-state hidden" id="loadingState">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">
+        <h3 id="loadingHeadline">Resolving Entity & Querying Outlets...</h3>
+        <p id="loadingSubtext">Scraping Google News & Yahoo Finance in parallel • Deduplicating headlines • Computing sentiment</p>
+      </div>
+    </div>
+
+    <!-- Error State / Unknown Ticker Banner -->
+    <div class="error-banner hidden" id="errorBanner">
+      <div class="error-icon">⚠️</div>
+      <div class="error-content">
+        <h4 id="errorTitle">Unable to find stock</h4>
+        <p id="errorMessage">Please check the ticker spelling or select a popular equity below.</p>
+        <div class="error-suggestions" id="errorSuggestions"></div>
+      </div>
+    </div>
+
+    <!-- Active Stock Analysis Dashboard -->
+    <div class="results-dashboard" id="resultsDashboard">
+      <!-- Resolution Header Banner -->
+      <section class="resolution-banner" id="resolutionBanner">
+        <div class="banner-left">
+          <div class="company-badge-group">
+            <h2 class="company-title" id="companyName">Tata Consultancy Services Ltd</h2>
+            <div class="ticker-badges">
+              <span class="badge badge-nse" id="nseTicker">NSE: TCS</span>
+              <span class="badge badge-bse" id="bseTicker">BSE: 532540</span>
+              <span class="badge badge-sector" id="companySector">Information Technology</span>
+            </div>
+          </div>
+          <div class="resolution-audit" id="resolutionAudit">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            <span id="auditText">Input resolved via canonical dictionary</span>
+          </div>
+        </div>
+
+        <div class="banner-right">
+          <button class="btn btn-star" id="watchlistToggleBtn" title="Toggle Watchlist">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <span id="watchlistBtnLabel">In Watchlist</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- AI "What's Going On" Executive Briefing Card -->
+      <section class="ai-briefing-card" id="aiBriefingCard">
+        <div class="briefing-header">
+          <div class="briefing-title-group">
+            <div class="ai-sparkle-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+            </div>
+            <div>
+              <h3 class="briefing-title">AI Executive Market Synthesis</h3>
+              <p class="briefing-meta" id="briefingMeta">Synthesizing 65 verified reports across 28 financial outlets</p>
+            </div>
+          </div>
+
+          <div class="briefing-actions">
+            <button class="btn-icon" id="speakBriefingBtn" title="Listen to Executive Briefing">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+              <span>Listen</span>
+            </button>
+            <button class="btn-icon" id="copyBriefingBtn" title="Copy Briefing Text">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <span>Copy</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="briefing-content">
+          <!-- Sentiment Gauge Bar -->
+          <div class="sentiment-gauge-container">
+            <div class="gauge-labels">
+              <span class="label-bullish" id="gaugeBullishLabel">▲ 62% Bullish</span>
+              <span class="label-neutral" id="gaugeNeutralLabel">■ 35% Neutral</span>
+              <span class="label-bearish" id="gaugeBearishLabel">▼ 3% Bearish</span>
+            </div>
+            <div class="gauge-bar-track">
+              <div class="gauge-fill-bullish" id="gaugeBullishFill" style="width: 62%;"></div>
+              <div class="gauge-fill-neutral" id="gaugeNeutralFill" style="width: 35%;"></div>
+              <div class="gauge-fill-bearish" id="gaugeBearishFill" style="width: 3%;"></div>
+            </div>
+          </div>
+
+          <!-- Executive Takeaway -->
+          <div class="takeaway-box">
+            <h4 class="takeaway-heading">WHAT'S GOING ON:</h4>
+            <p class="takeaway-text" id="takeawayText">Loading executive briefing...</p>
+          </div>
+
+          <!-- Key Catalysts Grid -->
+          <div class="catalysts-grid" id="catalystsGrid"></div>
+
+          <!-- Investor Watch Item -->
+          <div class="watch-item-card">
+            <span class="watch-label">WHAT INVESTORS ARE WATCHING:</span>
+            <p class="watch-text" id="investorWatchText">Monitoring upcoming quarterly commentary and IT spending cues.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Deduplication & Scraping Metrics HUD -->
+      <section class="metrics-hud" id="metricsHud">
+        <div class="hud-metric">
+          <span class="hud-label">ARTICLES SCANNED</span>
+          <span class="hud-value" id="hudTotalScanned">100</span>
+        </div>
+        <div class="hud-metric">
+          <span class="hud-label">DUPLICATES REMOVED</span>
+          <span class="hud-value text-accent" id="hudDuplicatesRemoved">35 (35%)</span>
+        </div>
+        <div class="hud-metric">
+          <span class="hud-label">UNIQUE STORIES</span>
+          <span class="hud-value text-success" id="hudUniqueStories">65</span>
+        </div>
+        <div class="hud-metric">
+          <span class="hud-label">SOURCES ACTIVE</span>
+          <span class="hud-value" id="hudSourcesCount">28 Outlets</span>
+        </div>
+      </section>
+
+      <!-- News Feed Filters & Sort Toolbar -->
+      <section class="feed-toolbar">
+        <div class="toolbar-left">
+          <h3 class="feed-title">Verified News Feed</h3>
+          <span class="feed-subtitle" id="feedCountSubtitle">Showing 65 stories sorted by recency</span>
+        </div>
+
+        <div class="toolbar-controls">
+          <!-- Time Range Filter -->
+          <div class="control-group">
+            <label for="daysFilter">Time Range:</label>
+            <select id="daysFilter" class="form-select">
+              <option value="1">Last 24 Hours</option>
+              <option value="3">Last 3 Days</option>
+              <option value="7" selected>Last 7 Days</option>
+              <option value="14">Last 14 Days</option>
+              <option value="30">Last 30 Days</option>
+            </select>
+          </div>
+
+          <!-- Sentiment Filter -->
+          <div class="control-group">
+            <label for="sentimentFilter">Sentiment:</label>
+            <select id="sentimentFilter" class="form-select">
+              <option value="all" selected>All Sentiments</option>
+              <option value="Positive">Bullish Only</option>
+              <option value="Negative">Bearish Only</option>
+              <option value="Neutral">Neutral Only</option>
+            </select>
+          </div>
+
+          <!-- Source Filter -->
+          <div class="control-group">
+            <label for="sourceFilter">Source:</label>
+            <select id="sourceFilter" class="form-select">
+              <option value="all" selected>All Publishers</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <!-- News Articles Cards Container -->
+      <section class="news-cards-container" id="newsCardsContainer"></section>
+    </div>
+  </main>
+
+  <!-- Watchlist & Daily Digest Drawer / Modal -->
+  <div class="modal-backdrop hidden" id="watchlistModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <h3 class="modal-title">Portfolio Watchlist & Daily Digest</h3>
+          <p class="modal-subtitle">Track multiple Indian equities and generate automated executive morning briefings.</p>
+        </div>
+        <button class="btn-close-modal" id="closeWatchlistBtn">×</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Watchlist Stock Tags -->
+        <div class="watchlist-section">
+          <h4 class="section-title">ACTIVE WATCHLIST:</h4>
+          <div class="watchlist-tags-grid" id="watchlistTagsGrid"></div>
+
+          <div class="add-watchlist-row">
+            <input type="text" id="addWatchlistInput" class="input-compact" placeholder="Add ticker or company (e.g. ITC, WIPRO)...">
+            <button class="btn btn-secondary" id="addWatchlistSubmitBtn">+ Add to Watchlist</button>
+          </div>
+        </div>
+
+        <div class="digest-action-box">
+          <div class="action-text">
+            <h4>Generate Today's Digest</h4>
+            <p>Scrapes fresh news for all watchlist stocks, deduplicates coverage, and compiles an executive digest.</p>
+          </div>
+          <button class="btn btn-primary" id="generateDigestBtn">
+            <span id="generateDigestBtnText">⚡ Compile Digest Now</span>
+          </button>
+        </div>
+
+        <!-- Digest Output Container -->
+        <div class="digest-view-container" id="digestViewContainer">
+          <div class="digest-view-header">
+            <span class="digest-status-tag" id="digestMarketTone">Tone: Bullish</span>
+            <div class="digest-header-buttons">
+              <button class="btn-sm" id="copyDigestMdBtn">📋 Copy Markdown</button>
+              <button class="btn-sm" id="downloadDigestBtn">💾 Download Report</button>
+            </div>
+          </div>
+          <div class="digest-content-box" id="digestContentBox">
+            <p class="text-dim">No digest generated yet. Click "Compile Digest Now" to generate an executive report.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="app-footer">
+    <div class="footer-container">
+      <div class="footer-left">
+        <span>AURA INTEL // High-Speed Indian Equity News Scraper & AI Synthesizer</span>
+      </div>
+      <div class="footer-right">
+        <span>Sources: Google News India • Yahoo Finance • Moneycontrol • Economic Times • Livemint • Business Standard</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/static/app.js?v=2.2.0"></script>
+</body>
+</html>
