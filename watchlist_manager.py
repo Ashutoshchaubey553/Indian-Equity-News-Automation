@@ -17,6 +17,21 @@ from sentiment_analyzer import analyzer
 from synthesizer import synthesizer
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
+
+# On Vercel's serverless runtime, the project directory is read-only.
+# Use /tmp for writable data storage on serverless platforms.
+if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+    import shutil
+    WRITABLE_DATA_DIR = "/tmp/aura_intel_data"
+    os.makedirs(WRITABLE_DATA_DIR, exist_ok=True)
+    # Copy seed data files from source tree to /tmp if they don't already exist
+    for fname in ["watchlist.json", "digests.json"]:
+        src = os.path.join(DATA_DIR, fname)
+        dst = os.path.join(WRITABLE_DATA_DIR, fname)
+        if not os.path.exists(dst) and os.path.exists(src):
+            shutil.copy2(src, dst)
+    DATA_DIR = WRITABLE_DATA_DIR
+
 WATCHLIST_FILE = os.path.join(DATA_DIR, "watchlist.json")
 DIGESTS_FILE = os.path.join(DATA_DIR, "digests.json")
 

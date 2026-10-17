@@ -2,6 +2,8 @@
 
 A high-speed, multi-source Indian equity news lookup, deduplication, sentiment analysis, and executive market briefing automation engine.
 
+### 🔴 [Live Demo → https://aura-intel-phi.vercel.app](https://aura-intel-phi.vercel.app)
+
 ---
 
 ## 🌟 Key Features

@@ -9,3 +9,7 @@ venv/
 .idea/
 .vscode/
 *.log
+.vercel/
+node_modules/
+
+.vercel
